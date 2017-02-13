@@ -1,0 +1,73 @@
+#!/bin/sh
+
+# Use this from now on::
+#		No need to go to the production machine
+#		No need to change doorkeeper each time
+# 	Pair this with the DB repository scripts on your local machine
+
+# $1 is 'LMS' if you want only LMS data dump
+# $1 is 'IMPORT_TO_STAGING' if you want only LMS data dump
+
+################################################################################
+# Make sure this script DOES NOT run on PROD Mongo
+PROD_MONGO_INST_ID="i-d7a8ff73"
+STG_MONGO_INST_ID="i-83481f27"
+
+echo "Identifying current machine..."
+SELF_INST_ID="`wget -q -O - http://instance-data/latest/meta-data/instance-id || echo \"not-ec2\"`"
+
+if [ $SELF_INST_ID == $PROD_MONGO_INST_ID ]
+then
+	echo "FATAL: This script CANNOT run on PROD-MONGO1!"
+	exit
+fi
+################################################################################
+
+TZ='Asia/Kolkata'
+export TZ
+
+mkdir backups 2> /dev/null
+
+now=$(date +%Y-%m-%d-%T)
+
+rm -rf dump
+
+echo ""
+echo "Downloading production database to staging machine..."
+if [ "$1" = "LMS" ]
+then
+	filename="lms-avanti-db-$now.tar.gz"
+	db_list="--db avanti-lms_production"
+else
+	echo "(Full DB)"
+	filename="full-avanti-db-$now.tar.gz"
+	db_list=""
+fi
+
+dump_out=$(mongodump --host 10.20.10.103 --port 27017 $db_list --out dump/)
+
+if [ "$1" = "IMPORT_TO_STAGING" ] || [ "$2" = "IMPORT_TO_STAGING" ]
+then
+	echo "Restoring to staging DB..."
+	restore_out=$(mongorestore --host 10.20.2.88 --drop --port 27017 dump/) && \
+	echo "Resetting Staging Doorkeeper..." && \
+	./reset_staging_doorkeeper && \
+	echo "Production DB imported to Staging! :)"
+	echo ""
+fi
+
+if [ out ]
+then
+	echo "Compressing database for download to local machine..."
+	cd dump
+	make_tar=$(tar -zcvf ../backups/$filename *) && \
+	echo "Done! " && \
+	echo "" && \
+	echo "Logout and run the following in the avanti-prod-db repo on your local machine:" && \
+	echo "" && \
+	echo "./restore_latest $filename"
+else
+	echo "FAILED $out"	
+fi
+
+echo ""

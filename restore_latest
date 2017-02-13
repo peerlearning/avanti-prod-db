@@ -1,0 +1,5 @@
+#!/bin/bash
+# Fetches latest changes from Production Mongo DB and restores it
+echo "Downloading DB..."
+scp 10.20.2.88:/home/ec2-user/backups/$1 ./latest_dump.tar.gz && \
+./restore_local

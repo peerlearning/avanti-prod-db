@@ -1,0 +1,32 @@
+#!/bin/bash
+
+#./exit_if_prod_mongo
+
+PROD_MONGO_INST_ID="i-d7a8ff73"
+STG_MONGO_INST_ID="i-83481f27"
+
+echo "Identifying current machine..."
+SELF_INST_ID="`wget -q -O - http://instance-data/latest/meta-data/instance-id || echo \"not-ec2\"`"
+
+if [ $SELF_INST_ID == $PROD_MONGO_INST_ID ]
+then
+	echo "FATAL: This script CANNOT run on PROD-MONGO1!"
+	exit -1
+fi
+
+echo "Dropping databases and restoring from Production in 3 seconds (Press Ctrl+C to cancel...)"
+
+sleep 3
+
+if [ $SELF_INST_ID != $STG_MONGO_INST_ID ]
+then
+	mongo avanti_lms_development --eval 'db.dropDatabase()'
+	mongo avanti_cms_development --eval 'db.dropDatabase()'
+	mongo avanti_service_development --eval 'db.dropDatabase()'
+else
+	mongo avanti-lms_production --eval 'db.dropDatabase()'
+	mongo avanti-cms_production --eval 'db.dropDatabase()'
+	mongo avanti-service_production --eval 'db.dropDatabase()'
+fi
+
+./restore_local
