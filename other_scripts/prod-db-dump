@@ -26,48 +26,45 @@ fi
 TZ='Asia/Kolkata'
 export TZ
 
-mkdir backups 2> /dev/null
-
-now=$(date +%Y-%m-%d-%T)
-
-rm -rf dump
+#rm -rf dump
 
 echo ""
 echo "Downloading production database to staging machine..."
-if [ "$1" = "LMS" ]
+
+db_list=""
+echo "DB_LIST: "$1
+
+if [ "$1" == "LMS" ]
 then
-	filename="lms-avanti-db-$now.tar.gz"
+	echo $1
 	db_list="--db avanti-lms_production"
+elif [ "$1" == "CMS" ]
+then
+	echo $1
+	db_list="--db avanti-cms_production"	
+elif [ "$1" == "SERVICE" ]
+then
+	echo $1
+	db_list="--db avanti-service_production"	
 else
 	echo "(Full DB)"
-	filename="full-avanti-db-$now.tar.gz"
 	db_list=""
 fi
 
+#exclude_coll_list="--excludeCollection="
+
 dump_out=$(mongodump --host 10.20.10.103 --port 27017 $db_list --out dump/)
 
-if [ "$1" = "IMPORT_TO_STAGING" ] || [ "$2" = "IMPORT_TO_STAGING" ]
-then
-	echo "Restoring to staging DB..."
-	restore_out=$(mongorestore --host 10.20.2.88 --drop --port 27017 dump/) && \
-	echo "Resetting Staging Doorkeeper..." && \
-	./reset_staging_doorkeeper && \
-	echo "Production DB imported to Staging! :)"
-	echo ""
-fi
-
-if [ out ]
-then
-	echo "Compressing database for download to local machine..."
-	cd dump
-	make_tar=$(tar -zcvf ../backups/$filename *) && \
-	echo "Done! " && \
-	echo "" && \
-	echo "Logout and run the following in the avanti-prod-db repo on your local machine:" && \
-	echo "" && \
-	echo "./restore_latest $filename"
-else
-	echo "FAILED $out"	
-fi
-
+echo "Production $1 DB dumped on staging successfully!"
 echo ""
+echo "LISTEN UP!"
+echo ""
+echo "Run './import_it' to restore DB(s) to staging"
+echo ""
+echo "Run './tar_it' to compress the DB dumps for download. Thx."
+echo ""
+sleep 1
+echo ""
+echo "Auto-importing all DBs in 5s... (Press Ctrl+C to quit)"
+sleep 5
+./import_it

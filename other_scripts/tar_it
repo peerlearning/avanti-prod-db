@@ -1,0 +1,16 @@
+#!/bin/sh
+
+now=$(date +%Y-%m-%d-%T)
+
+mkdir backups 2> /dev/null
+
+echo "Compressing database for download to local machine..."
+echo "Press Ctrl+C to cancel"
+filename="avanti-db-$now.tar.gz"
+cd dump
+make_tar=$(tar -zcvf ../backups/$filename *) && \
+echo "Done! " && \
+echo "" && \
+echo "Logout and run the following in the avanti-prod-db repo on your local machine:" && \
+echo "" && \
+echo "./restore_latest $filename"
