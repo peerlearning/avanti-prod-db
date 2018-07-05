@@ -1,0 +1,70 @@
+#!/bin/sh
+
+# Use this from now on::
+#		No need to go to the production machine
+#		No need to change doorkeeper each time
+# 	Pair this with the DB repository scripts on your local machine
+
+# $1 is 'LMS' if you want only LMS data dump
+# $1 is 'IMPORT_TO_STAGING' if you want only LMS data dump
+
+################################################################################
+# Make sure this script DOES NOT run on PROD Mongo
+PROD_MONGO_INST_ID="i-0a4743181c556f429"
+STG_MONGO_INST_ID="i-0ae072d2795722515"
+
+echo "Identifying current machine..."
+SELF_INST_ID="`wget -q -O - http://instance-data/latest/meta-data/instance-id || echo \"not-ec2\"`"
+
+if [ $SELF_INST_ID = $PROD_MONGO_INST_ID ]
+then
+	echo "FATAL: This script CANNOT run on PROD-MONGO1!"
+	exit
+fi
+################################################################################
+
+TZ='Asia/Kolkata'
+export TZ
+
+#rm -rf dump
+
+echo ""
+echo "Downloading production database to staging machine..."
+
+db_list=""
+echo "DB_LIST: "$1
+
+if [ $1 = "LMS" ]
+then
+	echo $1
+	db_list="--db avanti-lms_production"
+elif [ $1 = "CMS" ]
+then
+	echo $1
+	db_list="--db avanti-cms_production"	
+elif [ $1 = "SERVICE" ]
+then
+	echo $1
+	db_list="--db avanti-service_production"	
+else
+	echo "(Full DB)"
+	db_list=""
+fi
+
+#exclude_coll_list="--excludeCollection="
+
+dump_out=$(mongodump --host 10.20.10.103 --port 27017 $db_list --out dump/)
+
+echo "Production $1 DB dumped on staging successfully!"
+echo ""
+echo "LISTEN UP!"
+echo ""
+echo "Run './import_it' to restore DB(s) to staging"
+echo ""
+echo "Run './tar_it' to compress the DB dumps for download. Thx."
+echo ""
+sleep 1
+echo ""
+echo "Auto-importing all DBs in 5s... (Press Ctrl+C to quit)"
+sleep 5
+#./import_it

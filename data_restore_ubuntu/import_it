@@ -1,0 +1,8 @@
+#!/bin/sh
+echo "Restoring dumped DBs to staging DB..."
+restore_out=$(mongorestore --host 10.20.2.30 --drop --port 27017 dump/) && \
+echo "Resetting Staging Doorkeeper..." && \
+./reset_staging_doorkeeper && \
+echo "Production DBs imported to Staging! :)"
+echo ""
+echo "Run './tar_it' to compress the DB dumps for download. Thx."
